@@ -1,0 +1,9 @@
+{
+  "name": "microgpt-ts",
+  "version": "1.0.0",
+  "description": "MicroGPT ported to TypeScript from Andrej Karpathy's microgpt.py",
+  "type": "module",
+  "scripts": {
+    "start": "node microgpt.ts"
+  }
+}

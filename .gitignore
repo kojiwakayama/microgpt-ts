@@ -1,0 +1,5 @@
+node_modules/
+input.txt
+*.log
+*_output.txt
+microgpt.py
