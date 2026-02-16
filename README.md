@@ -44,7 +44,7 @@ runtime.
 | Runtime                       | Time (1000 steps) | Relative       |
 | ----------------------------- | ----------------- | -------------- |
 | **Node.js 25.2** (TypeScript) | **~6.3s**         | **1x**         |
-| **Python 3.14** (CPython)     | **~50.2s**        | **~8x slower** |
+| **Python 3.14** (CPython)     | **~50.3s**        | **~8x slower** |
 
 > Benchmarked on Apple M3 Max, 128GB RAM. Average of 3 runs.
 
@@ -59,8 +59,28 @@ autograd does.
 node microgpt.ts
 ```
 
-Requires Node.js 23.6+ (native TypeScript support). Downloads the training data
-automatically on first run.
+Requires Node.js 23.6+ (native TypeScript support). Also works with
+`bun microgpt.ts` or `deno run --allow-read --allow-write --allow-net microgpt.ts`.
+
+Downloads the training data automatically on first run.
+
+## Wider runtime comparison
+
+The same TypeScript file also runs on Bun and Deno — all three produce identical
+output.
+
+| Runtime                       | Time (1000 steps) | vs Python         |
+| ----------------------------- | ----------------- | ----------------- |
+| **Bun 1.3.6** (JavaScriptCore)| **~3.8s**         | **~13x faster**   |
+| **Node.js 25.2** (V8)         | **~6.3s**         | **~8x faster**    |
+| **Deno 2.6.7** (V8)           | **~6.8s**         | **~7x faster**    |
+| **Python 3.14** (CPython)     | **~50.3s**        | baseline          |
+
+Reproduce on your machine:
+
+```bash
+./bench.sh
+```
 
 ## Credits
 
