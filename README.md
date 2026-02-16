@@ -49,9 +49,9 @@ runtime.
 > Benchmarked on Apple M3 Max, 128GB RAM. Average of 3 runs.
 
 That's an **~8x speedup** from a straight port — no optimization, same
-algorithm, same structure. V8's JIT is remarkably good at optimizing hot loops
-with millions of small object allocations, which is essentially what scalar
-autograd does.
+algorithm, same structure. JIT compilation makes a massive difference when the
+workload is millions of small object allocations, which is essentially what
+scalar autograd does.
 
 ## Run it
 
@@ -80,6 +80,37 @@ Reproduce on your machine:
 
 ```bash
 ./bench.sh
+```
+
+## Why is Bun 1.6x faster than Node?
+
+Bun uses JavaScriptCore (JSC), Node uses V8 — but which part of the engine
+explains the gap? We tested and eliminated the obvious suspects:
+
+| Hypothesis | Test | Result |
+| --- | --- | --- |
+| V8 JIT warmup | Ran training twice in same process | 3% speedup — not it |
+| Startup time | Bare `node -e '0'` vs `bun -e '0'` | 37ms diff — negligible |
+| GC pressure | `node --trace-gc` | 8 pauses, ~15ms total — not it |
+| TypeScript stripping | Pre-compiled to JS, ran on Node | Same speed — not it |
+
+Then we isolated the variable with `bench-alloc.ts` — a microbenchmark that
+creates 2M `Value` objects (the same autograd class microgpt uses):
+
+| Engine | Allocs/sec | Relative |
+| --- | --- | --- |
+| V8 (Node) | 12.8M | 1x |
+| JSC (Bun) | 20.9M | **1.63x faster** |
+
+That 1.63x matches the 1.6x overall speedup almost exactly. The entire
+performance gap comes from JSC's faster object allocation throughput on
+short-lived objects.
+
+Run it yourself:
+
+```bash
+node bench-alloc.ts
+bun bench-alloc.ts
 ```
 
 ## Credits
