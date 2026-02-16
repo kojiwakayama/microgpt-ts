@@ -9,6 +9,7 @@ cd "$SCRIPT_DIR"
 now() { perl -MTime::HiRes=time -e 'printf "%.3f\n", time'; }
 
 found=0
+node_ok=0
 results=""
 fastest=999999
 
@@ -43,10 +44,10 @@ if command -v bun > /dev/null 2>&1; then
 fi
 
 if command -v node > /dev/null 2>&1; then
-  node_ver=$(node -e 'const [a,b]=process.versions.node.split(".").map(Number);process.exit(a>23||(a===23&&b>=6)?0:1)' 2>/dev/null && echo ok || echo old)
-  if [ "$node_ver" = "ok" ]; then
+  if node -e 'const [a,b]=process.versions.node.split(".").map(Number);process.exit(a>23||(a===23&&b>=6)?0:1)' 2>/dev/null; then
     echo "Found: node $(node --version)"
     found=1
+    node_ok=1
   else
     echo "Skip:  node $(node --version) (needs 23.6+ for TypeScript)"
   fi
@@ -82,11 +83,8 @@ if command -v bun > /dev/null 2>&1; then
   bench_one "bun" bun microgpt.ts
 fi
 
-if command -v node > /dev/null 2>&1; then
-  node_ver=$(node -e 'const [a,b]=process.versions.node.split(".").map(Number);process.exit(a>23||(a===23&&b>=6)?0:1)' 2>/dev/null && echo ok || echo old)
-  if [ "$node_ver" = "ok" ]; then
-    bench_one "node" node microgpt.ts
-  fi
+if [ "$node_ok" -eq 1 ]; then
+  bench_one "node" node microgpt.ts
 fi
 
 if command -v deno > /dev/null 2>&1; then
