@@ -1,0 +1,1143 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>microgpt.ts — Explained</title>
+  <style>
+    :root {
+      --bg: #0f1117;
+      --surface: #1a1d27;
+      --surface2: #22263a;
+      --border: #2e3350;
+      --accent: #6c8aff;
+      --accent2: #a78bfa;
+      --accent3: #34d399;
+      --accent4: #f59e0b;
+      --accent5: #f87171;
+      --text: #e2e8f0;
+      --muted: #8892b0;
+      --code-bg: #141720;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'Segoe UI', system-ui, sans-serif;
+      font-size: 16px;
+      line-height: 1.7;
+    }
+
+    a { color: var(--accent); text-decoration: none; }
+    a:hover { text-decoration: underline; }
+
+    /* ── Layout ── */
+    .hero {
+      background: linear-gradient(135deg, #1a1d27 0%, #0f1117 60%);
+      border-bottom: 1px solid var(--border);
+      padding: 60px 40px 50px;
+      text-align: center;
+    }
+
+    .hero h1 {
+      font-size: 2.8rem;
+      font-weight: 800;
+      background: linear-gradient(90deg, var(--accent), var(--accent2));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      margin-bottom: 12px;
+    }
+
+    .hero p {
+      color: var(--muted);
+      font-size: 1.1rem;
+      max-width: 620px;
+      margin: 0 auto 28px;
+    }
+
+    .hero-meta {
+      display: flex;
+      gap: 16px;
+      justify-content: center;
+      flex-wrap: wrap;
+    }
+
+    .badge {
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      padding: 4px 14px;
+      font-size: 0.82rem;
+      color: var(--muted);
+    }
+
+    .badge span { color: var(--accent3); font-weight: 600; }
+
+    .container {
+      max-width: 960px;
+      margin: 0 auto;
+      padding: 0 32px 80px;
+    }
+
+    /* ── Timeline ── */
+    .timeline-header {
+      margin: 60px 0 32px;
+      text-align: center;
+    }
+
+    .timeline-header h2 {
+      font-size: 1.9rem;
+      color: var(--text);
+      margin-bottom: 8px;
+    }
+
+    .timeline-header p {
+      color: var(--muted);
+    }
+
+    .timeline {
+      position: relative;
+      padding-left: 40px;
+    }
+
+    .timeline::before {
+      content: '';
+      position: absolute;
+      left: 14px;
+      top: 0;
+      bottom: 0;
+      width: 2px;
+      background: linear-gradient(to bottom, var(--accent), var(--accent2), var(--accent3));
+    }
+
+    .timeline-step {
+      position: relative;
+      margin-bottom: 44px;
+    }
+
+    .timeline-dot {
+      position: absolute;
+      left: -34px;
+      top: 6px;
+      width: 18px;
+      height: 18px;
+      border-radius: 50%;
+      border: 2px solid;
+      background: var(--bg);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 0.6rem;
+      font-weight: 800;
+    }
+
+    .timeline-step h3 {
+      font-size: 1.15rem;
+      font-weight: 700;
+      margin-bottom: 6px;
+    }
+
+    .timeline-step p {
+      color: var(--muted);
+      font-size: 0.95rem;
+      margin-bottom: 10px;
+    }
+
+    /* ── Section headers ── */
+    .section-title {
+      font-size: 1.5rem;
+      font-weight: 700;
+      margin: 64px 0 6px;
+      padding-bottom: 10px;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .section-subtitle {
+      color: var(--muted);
+      margin-bottom: 28px;
+      font-size: 0.95rem;
+    }
+
+    /* ── Component cards ── */
+    .component-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      margin-bottom: 32px;
+      overflow: hidden;
+    }
+
+    .card-header {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      padding: 18px 22px;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .card-icon {
+      width: 40px;
+      height: 40px;
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.2rem;
+      flex-shrink: 0;
+    }
+
+    .card-header h3 {
+      font-size: 1.1rem;
+      font-weight: 700;
+    }
+
+    .card-header .line-ref {
+      margin-left: auto;
+      font-size: 0.78rem;
+      color: var(--muted);
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 3px 10px;
+      white-space: nowrap;
+    }
+
+    .card-body {
+      padding: 20px 22px;
+    }
+
+    .card-body p {
+      color: var(--muted);
+      margin-bottom: 14px;
+      font-size: 0.95rem;
+    }
+
+    .card-body p:last-child { margin-bottom: 0; }
+
+    .card-body strong { color: var(--text); }
+
+    /* ── Code blocks ── */
+    pre {
+      background: var(--code-bg);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 16px 18px;
+      overflow-x: auto;
+      margin: 14px 0;
+      font-size: 0.84rem;
+      line-height: 1.6;
+    }
+
+    code {
+      font-family: 'Fira Code', 'Cascadia Code', 'Consolas', monospace;
+      color: #c9d1d9;
+    }
+
+    .kw { color: #ff79c6; }
+    .fn { color: #8be9fd; }
+    .num { color: #bd93f9; }
+    .str { color: #f1fa8c; }
+    .cm { color: #6272a4; font-style: italic; }
+    .cls { color: #50fa7b; }
+    .op { color: #ff79c6; }
+
+    /* ── Inline code ── */
+    p code, li code {
+      background: var(--code-bg);
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      padding: 1px 6px;
+      font-size: 0.86em;
+      color: var(--accent2);
+    }
+
+    /* ── Detail lists ── */
+    .detail-list {
+      list-style: none;
+      padding: 0;
+      display: grid;
+      gap: 8px;
+      margin: 10px 0;
+    }
+
+    .detail-list li {
+      display: flex;
+      gap: 10px;
+      align-items: flex-start;
+      font-size: 0.93rem;
+      color: var(--muted);
+    }
+
+    .detail-list li::before {
+      content: '▸';
+      color: var(--accent3);
+      flex-shrink: 0;
+      margin-top: 2px;
+    }
+
+    .detail-list li strong { color: var(--text); }
+
+    /* ── Hyperparams table ── */
+    .param-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.9rem;
+      margin: 14px 0;
+    }
+
+    .param-table th {
+      text-align: left;
+      color: var(--muted);
+      font-weight: 600;
+      padding: 8px 14px;
+      border-bottom: 1px solid var(--border);
+      font-size: 0.8rem;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+
+    .param-table td {
+      padding: 9px 14px;
+      border-bottom: 1px solid var(--border);
+      color: var(--text);
+    }
+
+    .param-table td:first-child {
+      font-family: monospace;
+      color: var(--accent2);
+    }
+
+    .param-table td:last-child {
+      color: var(--muted);
+      font-size: 0.88rem;
+    }
+
+    .param-table tr:last-child td { border-bottom: none; }
+
+    /* ── Highlight boxes ── */
+    .callout {
+      border-radius: 8px;
+      padding: 14px 18px;
+      margin: 16px 0;
+      font-size: 0.93rem;
+      border-left: 3px solid;
+    }
+
+    .callout-blue {
+      background: rgba(108,138,255,0.08);
+      border-color: var(--accent);
+      color: #aab8ff;
+    }
+
+    .callout-green {
+      background: rgba(52,211,153,0.08);
+      border-color: var(--accent3);
+      color: #86efac;
+    }
+
+    .callout-yellow {
+      background: rgba(245,158,11,0.08);
+      border-color: var(--accent4);
+      color: #fcd34d;
+    }
+
+    .callout-red {
+      background: rgba(248,113,113,0.08);
+      border-color: var(--accent5);
+      color: #fca5a5;
+    }
+
+    /* ── Math explanation ── */
+    .math-box {
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 14px 18px;
+      font-family: monospace;
+      font-size: 0.92rem;
+      color: var(--accent3);
+      margin: 12px 0;
+      line-height: 1.9;
+    }
+
+    /* ── Color codes for cards ── */
+    .color-blue   { background: rgba(108,138,255,0.12); }
+    .color-purple { background: rgba(167,139,250,0.12); }
+    .color-green  { background: rgba(52,211,153,0.12); }
+    .color-yellow { background: rgba(245,158,11,0.12); }
+    .color-red    { background: rgba(248,113,113,0.12); }
+    .color-cyan   { background: rgba(56,189,248,0.12); }
+
+    .text-blue   { color: var(--accent); }
+    .text-purple { color: var(--accent2); }
+    .text-green  { color: var(--accent3); }
+    .text-yellow { color: var(--accent4); }
+    .text-red    { color: var(--accent5); }
+    .text-cyan   { color: #38bdf8; }
+
+    /* ── Step numbers inside timeline ── */
+    .step-boot   { border-color: var(--accent);  color: var(--accent); }
+    .step-vocab  { border-color: var(--accent2); color: var(--accent2); }
+    .step-init   { border-color: var(--accent3); color: var(--accent3); }
+    .step-fwd    { border-color: var(--accent4); color: var(--accent4); }
+    .step-loss   { border-color: var(--accent5); color: var(--accent5); }
+    .step-bwd    { border-color: #38bdf8;        color: #38bdf8; }
+    .step-opt    { border-color: #a3e635;        color: #a3e635; }
+    .step-inf    { border-color: #e879f9;        color: #e879f9; }
+
+    /* ── Footer ── */
+    footer {
+      border-top: 1px solid var(--border);
+      text-align: center;
+      padding: 32px;
+      color: var(--muted);
+      font-size: 0.85rem;
+    }
+
+    /* ── Scrollbar ── */
+    ::-webkit-scrollbar { width: 8px; height: 8px; }
+    ::-webkit-scrollbar-track { background: var(--bg); }
+    ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
+
+    @media (max-width: 600px) {
+      .hero { padding: 40px 20px 36px; }
+      .hero h1 { font-size: 2rem; }
+      .container { padding: 0 18px 60px; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- ════════════════════════════════════════════════
+     HERO
+════════════════════════════════════════════════ -->
+<div class="hero">
+  <h1>microgpt.ts — Explained</h1>
+  <p>
+    A complete tour of every component in a from-scratch GPT transformer
+    implemented in ~340 lines of dependency-free TypeScript,
+    ported from Andrej Karpathy's <code>microgpt.py</code>.
+  </p>
+  <div class="hero-meta">
+    <div class="badge">Lines of code: <span>~340</span></div>
+    <div class="badge">Dependencies: <span>0</span></div>
+    <div class="badge">Params: <span>~21 k</span></div>
+    <div class="badge">Training steps: <span>1 000</span></div>
+    <div class="badge">Task: <span>name generation</span></div>
+  </div>
+</div>
+
+<div class="container">
+
+<!-- ════════════════════════════════════════════════
+     TRAINING TIMELINE
+════════════════════════════════════════════════ -->
+<div class="timeline-header">
+  <h2>What Happens When You Run It</h2>
+  <p>From cold start to generated names — every phase in order</p>
+</div>
+
+<div class="timeline">
+
+  <div class="timeline-step">
+    <div class="timeline-dot step-boot">1</div>
+    <h3 class="text-blue">Phase 1 — Boot &amp; Data Load</h3>
+    <p>
+      The runtime checks if <code>input.txt</code> exists. If not, it fetches
+      ~32 000 first names from Karpathy's <em>makemore</em> dataset on GitHub and
+      writes them to disk. This only ever happens once.
+    </p>
+    <div class="callout callout-blue">
+      The file contains one name per line — entries like <strong>emma</strong>,
+      <strong>olivia</strong>, <strong>ava</strong>. Each name becomes one
+      "document" the model will learn to reconstruct.
+    </div>
+  </div>
+
+  <div class="timeline-step">
+    <div class="timeline-dot step-vocab">2</div>
+    <h3 class="text-purple">Phase 2 — Vocabulary &amp; Tokenisation</h3>
+    <p>
+      All names are joined into one string and every unique character is
+      collected, then sorted. Because the dataset is English first names,
+      this gives you the 26 lowercase letters, a–z.
+    </p>
+    <p>
+      A special <strong>BOS (beginning-of-sequence)</strong> token is appended as
+      token ID 26, bringing the total vocabulary size to 27.
+      Each character is mapped to an integer: <code>'a' → 0, 'b' → 1, … 'z' → 25, BOS → 26</code>.
+    </p>
+    <div class="callout callout-blue">
+      The model learns to predict "what character comes next?" at every position,
+      including learning that the next token after the last letter is BOS —
+      i.e. "end of name". This is how a language model learns sequence boundaries.
+    </div>
+  </div>
+
+  <div class="timeline-step">
+    <div class="timeline-dot step-init">3</div>
+    <h3 class="text-green">Phase 3 — Model Initialisation</h3>
+    <p>
+      Every weight matrix in the model is filled with random numbers drawn
+      from a Gaussian distribution (mean=0, std=0.08) using the seeded PRNG.
+      Because the seed is fixed at 42, two runs produce identical results.
+    </p>
+    <p>
+      The model allocates roughly <strong>21 000 individual <code>Value</code> objects</strong>
+      just for its parameters — before any training even begins. This is the
+      "blank brain" state: random noise that will be shaped by gradient descent.
+    </p>
+  </div>
+
+  <div class="timeline-step">
+    <div class="timeline-dot step-fwd">4</div>
+    <h3 class="text-yellow">Phase 4 — Forward Pass (repeated 1 000 times)</h3>
+    <p>
+      One name is picked from the shuffled list (cycling through all of them
+      across 1 000 steps). It is converted to a token sequence, e.g.
+      <code>"emma" → [BOS, 4, 12, 12, 0, BOS]</code>.
+    </p>
+    <p>
+      For each position in the sequence, the GPT forward function runs:
+      the token is embedded, a positional embedding is added, passed through
+      one transformer layer (attention + MLP), and a final linear projection
+      produces a 27-number <em>logit vector</em> — one score per possible next character.
+    </p>
+    <div class="callout callout-yellow">
+      At this stage the model is building a massive computation graph of
+      <code>Value</code> nodes in memory. Every arithmetic operation creates a
+      new node and records its children and local gradients. This invisible
+      graph is what makes backpropagation possible.
+    </div>
+  </div>
+
+  <div class="timeline-step">
+    <div class="timeline-dot step-loss">5</div>
+    <h3 class="text-red">Phase 5 — Loss Computation</h3>
+    <p>
+      The logits are converted to probabilities via softmax. The model's
+      confidence in the <em>correct</em> next token is extracted and
+      the <strong>cross-entropy loss</strong> is computed: <code>-log(probability of correct token)</code>.
+    </p>
+    <p>
+      This is summed over every position in the name and averaged. A perfect
+      model would score <code>0.0</code>; a random model starts around
+      <code>3.3</code> (≈ log₂(27)). As training proceeds you should see this
+      number drop toward roughly <code>1.5–2.0</code>.
+    </p>
+  </div>
+
+  <div class="timeline-step">
+    <div class="timeline-dot step-bwd">6</div>
+    <h3 class="text-cyan">Phase 6 — Backward Pass (Backpropagation)</h3>
+    <p>
+      <code>loss.backward()</code> is called. This walks the entire computation
+      graph in reverse topological order, pushing gradients from the output
+      (loss) back to every parameter. Each node receives a gradient signal
+      telling it: "if you were slightly larger/smaller, how would the loss change?"
+    </p>
+    <p>
+      After this call, every parameter's <code>.grad</code> field holds the
+      derivative of the loss with respect to that weight.
+    </p>
+  </div>
+
+  <div class="timeline-step">
+    <div class="timeline-dot step-opt">7</div>
+    <h3 style="color:#a3e635">Phase 7 — Adam Optimiser Update</h3>
+    <p>
+      The Adam optimiser loops through all ~21 000 parameters, applies the
+      adaptive gradient update, and then <strong>zeroes all gradients</strong>
+      before the next step. The learning rate linearly decays from
+      <code>0.01 → 0.0</code> over the 1 000 steps, ensuring stable convergence
+      near the end of training.
+    </p>
+    <p>
+      The step number, loss, and a separator are printed to the console for
+      every single step. Watching the loss drop is the primary feedback that
+      the model is actually learning.
+    </p>
+  </div>
+
+  <div class="timeline-step">
+    <div class="timeline-dot step-inf">8</div>
+    <h3 style="color:#e879f9">Phase 8 — Inference: Generating 20 Names</h3>
+    <p>
+      After all 1 000 training steps, the loop ends and the model switches to
+      <em>inference mode</em>. Starting with only the BOS token, it generates
+      one character at a time by sampling from the predicted probability
+      distribution (scaled by temperature <code>0.5</code>) until it predicts
+      BOS again, signalling end-of-name.
+    </p>
+    <p>
+      Twenty such samples are printed. They should look like plausible — but
+      entirely invented — English-sounding first names.
+    </p>
+    <div class="callout callout-green">
+      Example expected output:<br/>
+      <code>sample  1: aveya</code><br/>
+      <code>sample  2: lorna</code><br/>
+      <code>sample  3: emmi</code>
+    </div>
+  </div>
+
+</div><!-- /timeline -->
+
+
+<!-- ════════════════════════════════════════════════
+     COMPONENT DEEP DIVES
+════════════════════════════════════════════════ -->
+<div class="section-title">Component Deep Dives</div>
+<p class="section-subtitle">Every logical block in <code>microgpt.ts</code>, explained in detail</p>
+
+
+<!-- ─── 1. SEEDED PRNG ─── -->
+<div class="component-card">
+  <div class="card-header">
+    <div class="card-icon color-blue">🎲</div>
+    <div>
+      <div class="text-blue" style="font-size:0.75rem;font-weight:600;text-transform:uppercase;letter-spacing:.06em;margin-bottom:2px">Section 1</div>
+      <h3>Seeded PRNG — Mulberry32</h3>
+    </div>
+    <div class="line-ref">lines 12 – 47</div>
+  </div>
+  <div class="card-body">
+    <p>
+      Machine learning requires randomness at two points: weight initialisation
+      and data shuffling. But for a demo to be <strong>reproducible</strong>,
+      that randomness must be <em>deterministic</em>. JavaScript's built-in
+      <code>Math.random()</code> is unseeded — you can't control it — so a
+      custom PRNG is included.
+    </p>
+
+    <p>
+      <strong>Mulberry32</strong> is a fast, high-quality 32-bit PRNG. Given
+      the same seed it always produces the same sequence of floats in [0, 1).
+      The seed is hardcoded to <code>42</code>.
+    </p>
+
+    <pre><code><span class="kw">function</span> <span class="fn">mulberry32</span>(seed: <span class="cls">number</span>): () =&gt; <span class="cls">number</span> {
+  <span class="kw">let</span> s = seed | <span class="num">0</span>;
+  <span class="kw">return</span> () =&gt; {
+    s = (s + <span class="num">0x6d2b79f5</span>) | <span class="num">0</span>;
+    <span class="kw">let</span> t = Math.<span class="fn">imul</span>(s ^ (s &gt;&gt;&gt; <span class="num">15</span>), <span class="num">1</span> | s);
+    t = (t + Math.<span class="fn">imul</span>(t ^ (t &gt;&gt;&gt; <span class="num">7</span>), <span class="num">61</span> | t)) ^ t;
+    <span class="kw">return</span> ((t ^ (t &gt;&gt;&gt; <span class="num">14</span>)) &gt;&gt;&gt; <span class="num">0</span>) / <span class="num">4294967296</span>;
+  };
+}</code></pre>
+
+    <ul class="detail-list">
+      <li><strong><code>gauss(mean, std)</code></strong> — uses Box-Muller transform to turn two uniform random numbers into a Gaussian sample. This is how weight matrices are initialised with small random values.</li>
+      <li><strong><code>shuffle(arr)</code></strong> — Fisher-Yates in-place shuffle. The names list is shuffled once at startup so each training step sees documents in a different order.</li>
+      <li><strong><code>weightedChoice(weights)</code></strong> — samples an index proportional to its weight. Used during inference to pick the next token from the model's probability distribution.</li>
+    </ul>
+
+    <div class="callout callout-blue">
+      Why does this matter? Without a seeded PRNG, every run would produce
+      different results, making it impossible to compare or debug. With seed=42,
+      every run is byte-for-byte identical.
+    </div>
+  </div>
+</div>
+
+
+<!-- ─── 2. AUTOGRAD ─── -->
+<div class="component-card">
+  <div class="card-header">
+    <div class="card-icon color-purple">∂</div>
+    <div>
+      <div class="text-purple" style="font-size:0.75rem;font-weight:600;text-transform:uppercase;letter-spacing:.06em;margin-bottom:2px">Section 2</div>
+      <h3>Autograd Engine — the <code>Value</code> class</h3>
+    </div>
+    <div class="line-ref">lines 49 – 126</div>
+  </div>
+  <div class="card-body">
+    <p>
+      This is <strong>the most foundational piece of the entire file</strong>.
+      Modern ML frameworks like PyTorch hide this behind abstractions, but here
+      it is written from scratch in about 75 lines.
+    </p>
+    <p>
+      Every single number in the model — every weight, every activation,
+      every intermediate result — is wrapped in a <code>Value</code> object.
+      A <code>Value</code> stores:
+    </p>
+
+    <ul class="detail-list">
+      <li><strong><code>.data</code></strong> — the actual floating-point number</li>
+      <li><strong><code>.grad</code></strong> — the gradient that will be filled in during backward pass (starts at 0)</li>
+      <li><strong><code>._children</code></strong> — references to the <code>Value</code> nodes that produced this one (its "parents" in the computation graph)</li>
+      <li><strong><code>._localGrads</code></strong> — the local partial derivatives w.r.t. each child, pre-computed at operation time</li>
+    </ul>
+
+    <p>
+      Every arithmetic operation on a <code>Value</code> creates a <em>new</em>
+      <code>Value</code> and records the dependency. This builds up an
+      <strong>implicit computation graph</strong> in memory as the forward pass
+      runs:
+    </p>
+
+    <pre><code><span class="cm">// e.g. a.mul(b) creates a new Value whose children are [a, b]
+// and whose local grads are [b.data, a.data] (by the product rule)</span>
+<span class="fn">mul</span>(other: <span class="cls">Value</span> | <span class="cls">number</span>): <span class="cls">Value</span> {
+  <span class="kw">const</span> o = other <span class="kw">instanceof</span> <span class="cls">Value</span> ? other : <span class="kw">new</span> <span class="cls">Value</span>(other);
+  <span class="kw">return new</span> <span class="cls">Value</span>(this.data * o.data, [this, o], [o.data, this.data]);
+}</code></pre>
+
+    <p>
+      <strong>Operations supported:</strong> <code>add</code>, <code>mul</code>,
+      <code>pow</code>, <code>log</code>, <code>exp</code>, <code>relu</code>
+      — plus derived helpers <code>neg</code>, <code>sub</code>, <code>div</code>.
+    </p>
+
+    <p><strong>How backward works:</strong></p>
+    <ol class="detail-list">
+      <li>The graph is traversed depth-first to produce a <strong>topological ordering</strong> — leaves first, output last.</li>
+      <li>The output node's gradient is set to <code>1.0</code> (d(loss)/d(loss) = 1).</li>
+      <li>The list is iterated in <em>reverse</em>, and for each node, its gradient is multiplied by each child's local gradient (chain rule) and accumulated onto the child's <code>.grad</code>.</li>
+    </ol>
+
+    <div class="math-box">
+      Chain rule:  ∂L/∂child  +=  (∂L/∂node) × (∂node/∂child)
+      <br/>
+      i.e.:  child.grad  +=  node.grad × localGrad
+    </div>
+
+    <div class="callout callout-yellow">
+      This creates <strong>millions of tiny JavaScript objects</strong> per
+      training step — which is intentional. The project's benchmarking goal is
+      to measure how fast different JS runtimes can allocate and GC small objects.
+      Bun (JavaScriptCore) allocates them ~1.63× faster than Node.js (V8).
+    </div>
+  </div>
+</div>
+
+
+<!-- ─── 3. MODEL HELPERS ─── -->
+<div class="component-card">
+  <div class="card-header">
+    <div class="card-icon color-cyan">⚙️</div>
+    <div>
+      <div class="text-cyan" style="font-size:0.75rem;font-weight:600;text-transform:uppercase;letter-spacing:.06em;margin-bottom:2px">Section 3</div>
+      <h3>Model Helpers — <code>linear</code>, <code>softmax</code>, <code>rmsnorm</code></h3>
+    </div>
+    <div class="line-ref">lines 128 – 149</div>
+  </div>
+  <div class="card-body">
+    <p>
+      Three building-block functions used throughout the transformer. They all
+      operate on arrays of <code>Value</code> objects so gradients flow through them.
+    </p>
+
+    <p><strong>linear(x, w)</strong> — Matrix-vector multiplication</p>
+    <pre><code><span class="cm">// For each output neuron (row of w), compute dot product with input x</span>
+<span class="kw">function</span> <span class="fn">linear</span>(x: <span class="cls">Value</span>[], w: <span class="cls">Value</span>[][]): <span class="cls">Value</span>[] {
+  <span class="kw">return</span> w.<span class="fn">map</span>((wo) =&gt;
+    wo.<span class="fn">reduce</span>((acc, wi, i) =&gt; acc.<span class="fn">add</span>(wi.<span class="fn">mul</span>(x[i])), <span class="kw">new</span> <span class="cls">Value</span>(<span class="num">0</span>))
+  );
+}</code></pre>
+    <p>
+      This is how all the weight matrices in the model are applied:
+      query/key/value projections in attention, the two MLP layers,
+      and the final language-model head all use this function.
+    </p>
+
+    <p><strong>softmax(logits)</strong> — Convert scores to probabilities</p>
+    <div class="math-box">
+      softmax(xᵢ) = exp(xᵢ - max(x)) / Σ exp(xⱼ - max(x))
+    </div>
+    <p>
+      The <code>- max(x)</code> is a numerical stability trick: subtracting the
+      maximum value before exponentiation prevents overflow without changing the
+      final probabilities. The output is a probability distribution summing to 1.
+    </p>
+
+    <p><strong>rmsnorm(x)</strong> — Root Mean Square Normalisation</p>
+    <div class="math-box">
+      RMSNorm(x) = x / sqrt(mean(x²) + ε)
+    </div>
+    <p>
+      Normalises the activations so they don't blow up or vanish as they pass
+      through layers. This is applied at the start of each transformer layer and
+      immediately after the input embeddings are created. <code>ε = 1e-5</code>
+      prevents division by zero.
+    </p>
+  </div>
+</div>
+
+
+<!-- ─── 4. HYPERPARAMETERS ─── -->
+<div class="component-card">
+  <div class="card-header">
+    <div class="card-icon color-yellow">🔢</div>
+    <div>
+      <div class="text-yellow" style="font-size:0.75rem;font-weight:600;text-transform:uppercase;letter-spacing:.06em;margin-bottom:2px">Section 4</div>
+      <h3>Hyperparameters &amp; Model Architecture</h3>
+    </div>
+    <div class="line-ref">lines 175 – 208</div>
+  </div>
+  <div class="card-body">
+    <p>
+      These five constants define the entire model architecture.
+      Every matrix dimension derives from them:
+    </p>
+
+    <table class="param-table">
+      <thead>
+        <tr>
+          <th>Constant</th>
+          <th>Value</th>
+          <th>What it controls</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>N_EMBD</td>
+          <td>16</td>
+          <td>Embedding dimension — width of every vector in the model</td>
+        </tr>
+        <tr>
+          <td>N_HEAD</td>
+          <td>4</td>
+          <td>Number of attention heads per layer</td>
+        </tr>
+        <tr>
+          <td>N_LAYER</td>
+          <td>1</td>
+          <td>Number of transformer blocks stacked on top of each other</td>
+        </tr>
+        <tr>
+          <td>BLOCK_SIZE</td>
+          <td>16</td>
+          <td>Maximum sequence length (context window)</td>
+        </tr>
+        <tr>
+          <td>HEAD_DIM</td>
+          <td>4</td>
+          <td>Dimension per attention head (= N_EMBD / N_HEAD)</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <p>The model's weight matrices and their shapes:</p>
+
+    <table class="param-table">
+      <thead>
+        <tr><th>Matrix</th><th>Shape</th><th>Purpose</th></tr>
+      </thead>
+      <tbody>
+        <tr><td>wte</td><td>27 × 16</td><td>Token embedding — maps token ID → 16-d vector</td></tr>
+        <tr><td>wpe</td><td>16 × 16</td><td>Positional embedding — maps position ID → 16-d vector</td></tr>
+        <tr><td>lm_head</td><td>27 × 16</td><td>Language model head — maps 16-d vector → 27 logits</td></tr>
+        <tr><td>attn_wq</td><td>16 × 16</td><td>Query projection in attention</td></tr>
+        <tr><td>attn_wk</td><td>16 × 16</td><td>Key projection in attention</td></tr>
+        <tr><td>attn_wv</td><td>16 × 16</td><td>Value projection in attention</td></tr>
+        <tr><td>attn_wo</td><td>16 × 16</td><td>Output projection in attention</td></tr>
+        <tr><td>mlp_fc1</td><td>64 × 16</td><td>First MLP layer (expands 16 → 64)</td></tr>
+        <tr><td>mlp_fc2</td><td>16 × 64</td><td>Second MLP layer (contracts 64 → 16)</td></tr>
+      </tbody>
+    </table>
+
+    <div class="callout callout-green">
+      Total parameters ≈ (27×16)×2 + (16×16)×5 + (64×16) + (16×64) = 864 + 1280 + 1024 + 1024 = <strong>~4 600 scalars</strong> in weight matrices × 2 (for wte/wpe/lm_head) ≈ <strong>~21 000</strong> Value objects total (the console will print the exact number).
+    </div>
+  </div>
+</div>
+
+
+<!-- ─── 5. GPT FORWARD PASS ─── -->
+<div class="component-card">
+  <div class="card-header">
+    <div class="card-icon color-green">🧠</div>
+    <div>
+      <div class="text-green" style="font-size:0.75rem;font-weight:600;text-transform:uppercase;letter-spacing:.06em;margin-bottom:2px">Section 5</div>
+      <h3>GPT Forward Pass</h3>
+    </div>
+    <div class="line-ref">lines 210 – 267</div>
+  </div>
+  <div class="card-body">
+    <p>
+      The <code>gpt(tokenId, posId, keys, values)</code> function is called
+      <strong>once per token position</strong> during both training and
+      inference. It takes one token and one position and returns the 27 logit
+      scores for the next token.
+    </p>
+
+    <p><strong>Step A — Input Embedding</strong></p>
+    <p>
+      The token's embedding vector (row <code>tokenId</code> of <code>wte</code>)
+      and position's embedding vector (row <code>posId</code> of <code>wpe</code>)
+      are added element-wise. This gives the model both <em>what</em> the token is
+      and <em>where</em> it appears in the sequence.
+    </p>
+    <pre><code><span class="kw">let</span> x = tokEmb.<span class="fn">map</span>((t, i) =&gt; t.<span class="fn">add</span>(posEmb[i]));
+x = <span class="fn">rmsnorm</span>(x);</code></pre>
+
+    <p><strong>Step B — Transformer Layer (repeated N_LAYER times)</strong></p>
+    <p>The single transformer block has two sub-components, each with a residual connection:</p>
+
+    <ul class="detail-list">
+      <li>
+        <strong>Multi-head self-attention</strong> — the input is projected to
+        queries (Q), keys (K), and values (V). Keys and values from all previous
+        positions are cached and reused, so the model can "look back" at past context.
+        Each of the 4 heads independently computes attention over a 4-dimensional
+        subspace. The outputs are concatenated and linearly projected back to 16 dimensions.
+      </li>
+      <li>
+        <strong>MLP feedforward network</strong> — a two-layer network that
+        expands 16 → 64, applies ReLU nonlinearity, then contracts 64 → 16.
+        This is where the model stores and transforms factual associations.
+      </li>
+    </ul>
+
+    <p><strong>Attention in detail:</strong></p>
+    <div class="math-box">
+      scores  = Q · Kᵀ / √HEAD_DIM<br/>
+      weights = softmax(scores)       <span style="color:#6272a4">← how much to attend to each past token</span><br/>
+      output  = weights · V           <span style="color:#6272a4">← weighted sum of past value vectors</span>
+    </div>
+
+    <p>
+      The <code>1 / HEAD_DIM ** 0.5</code> scaling factor prevents the dot
+      products from growing so large that softmax saturates to near-zero
+      gradients.
+    </p>
+
+    <p><strong>Step C — Language Model Head</strong></p>
+    <p>
+      After the transformer layer, a final <code>linear</code> call projects
+      the 16-dimensional output vector to 27 logits — one per vocabulary token.
+      These are the raw unnormalised scores that the loss function and inference
+      sampler will operate on.
+    </p>
+  </div>
+</div>
+
+
+<!-- ─── 6. TRAINING LOOP ─── -->
+<div class="component-card">
+  <div class="card-header">
+    <div class="card-icon color-red">🔁</div>
+    <div>
+      <div class="text-red" style="font-size:0.75rem;font-weight:600;text-transform:uppercase;letter-spacing:.06em;margin-bottom:2px">Section 6</div>
+      <h3>Training Loop &amp; Loss</h3>
+    </div>
+    <div class="line-ref">lines 269 – 313</div>
+  </div>
+  <div class="card-body">
+    <p>
+      The training loop runs for exactly <strong>1 000 steps</strong>.
+      Each step processes one name document.
+    </p>
+
+    <p><strong>Tokenisation per step:</strong></p>
+    <pre><code><span class="kw">const</span> tokens = [BOS, ...doc.<span class="fn">split</span>(<span class="str">""</span>).<span class="fn">map</span>((ch) =&gt; uchars.<span class="fn">indexOf</span>(ch)), BOS];
+<span class="cm">// e.g. "ava" → [26, 0, 21, 0, 26]
+//               BOS  a   v   a  BOS (end signal)</span></code></pre>
+
+    <p>
+      The model is trained to predict the next token at every position — this is
+      called <strong>teacher forcing</strong>. At position <code>posId</code> the
+      input is <code>tokens[posId]</code> and the target is <code>tokens[posId+1]</code>.
+    </p>
+
+    <p><strong>Cross-entropy loss:</strong></p>
+    <div class="math-box">
+      loss  = -mean( log( P(correct token) ) )
+    </div>
+    <p>
+      <code>P(correct token)</code> is extracted from the softmax output. If the
+      model is 100% confident on the right answer, <code>log(1.0) = 0</code>. If
+      it assigns near-zero probability, <code>log(ε) → -∞</code>. The loss
+      penalises wrong confident predictions most severely.
+    </p>
+
+    <p>
+      After <code>loss.backward()</code>, <strong>every parameter has a
+      non-zero <code>.grad</code></strong> telling it which direction to move
+      to reduce the loss.
+    </p>
+  </div>
+</div>
+
+
+<!-- ─── 7. ADAM OPTIMISER ─── -->
+<div class="component-card">
+  <div class="card-header">
+    <div class="card-icon color-yellow">⚡</div>
+    <div>
+      <div class="text-yellow" style="font-size:0.75rem;font-weight:600;text-transform:uppercase;letter-spacing:.06em;margin-bottom:2px">Section 7</div>
+      <h3>Adam Optimiser</h3>
+    </div>
+    <div class="line-ref">lines 270 – 307</div>
+  </div>
+  <div class="card-body">
+    <p>
+      Adam (Adaptive Moment Estimation) is the standard optimiser for neural
+      networks. Rather than using the raw gradient, it maintains two running
+      averages per parameter and uses them to adaptively scale each update.
+    </p>
+
+    <table class="param-table">
+      <thead>
+        <tr><th>Symbol</th><th>Value</th><th>Meaning</th></tr>
+      </thead>
+      <tbody>
+        <tr><td>lr</td><td>0.01</td><td>Base learning rate (step size)</td></tr>
+        <tr><td>β₁</td><td>0.85</td><td>Exponential decay for first moment (gradient mean)</td></tr>
+        <tr><td>β₂</td><td>0.99</td><td>Exponential decay for second moment (gradient variance)</td></tr>
+        <tr><td>ε</td><td>1e-8</td><td>Small constant to prevent division by zero</td></tr>
+      </tbody>
+    </table>
+
+    <p><strong>The update rule for each parameter:</strong></p>
+    <div class="math-box">
+      m  = β₁ × m + (1 - β₁) × grad          <span style="color:#6272a4">← running mean of gradient</span><br/>
+      v  = β₂ × v + (1 - β₂) × grad²         <span style="color:#6272a4">← running mean of squared gradient</span><br/>
+      m̂  = m / (1 - β₁ᵗ)                      <span style="color:#6272a4">← bias-corrected mean</span><br/>
+      v̂  = v / (1 - β₂ᵗ)                      <span style="color:#6272a4">← bias-corrected variance</span><br/>
+      param -= lr_t × m̂ / (√v̂ + ε)
+    </div>
+
+    <p>
+      The bias corrections (<code>1 - β₁ᵗ</code>, <code>1 - β₂ᵗ</code>)
+      compensate for the fact that <code>m</code> and <code>v</code> start at
+      zero — without them, early steps would be dramatically under-scaled.
+    </p>
+
+    <p>
+      <strong>Learning rate decay:</strong>
+      <code>lr_t = 0.01 × (1 - step / 1000)</code> — a linear schedule from
+      0.01 at step 0 to 0.0 at step 1000. This helps the model make bold
+      updates early and fine adjustments late.
+    </p>
+
+    <p>
+      The first and second moment arrays (<code>m</code>, <code>v</code>) are
+      stored as <code>Float64Array</code> — plain typed arrays, not
+      <code>Value</code> objects — since they don't need gradients.
+    </p>
+
+    <div class="callout callout-yellow">
+      After the Adam update, <strong>every <code>p.grad</code> is zeroed</strong>
+      to prevent gradients from accumulating across steps. Forgetting this is a
+      classic bug in from-scratch implementations.
+    </div>
+  </div>
+</div>
+
+
+<!-- ─── 8. INFERENCE ─── -->
+<div class="component-card">
+  <div class="card-header">
+    <div class="card-icon color-purple">✨</div>
+    <div>
+      <div class="text-purple" style="font-size:0.75rem;font-weight:600;text-transform:uppercase;letter-spacing:.06em;margin-bottom:2px">Section 8</div>
+      <h3>Inference — Generating Names</h3>
+    </div>
+    <div class="line-ref">lines 316 – 337</div>
+  </div>
+  <div class="card-body">
+    <p>
+      Once training is complete, the model is used autoregressively to generate
+      new names it has never seen. The process:
+    </p>
+
+    <ul class="detail-list">
+      <li>Start with <code>tokenId = BOS</code> and <code>posId = 0</code></li>
+      <li>Run the GPT forward pass to get 27 logits</li>
+      <li>Divide each logit by the <strong>temperature</strong> (0.5) — lower temperature makes the distribution sharper / more confident</li>
+      <li>Apply softmax to get probabilities</li>
+      <li>Sample using <code>weightedChoice</code> — higher-probability tokens are more likely but not guaranteed</li>
+      <li>If the sampled token is BOS → stop (end of name)</li>
+      <li>Otherwise, append the character and repeat from the new position</li>
+    </ul>
+
+    <div class="math-box">
+      P(token) = softmax(logits / temperature)<br/>
+      <br/>
+      temperature = 0.5  →  sharper, more conservative names<br/>
+      temperature = 1.5  →  flatter, more creative / chaotic names
+    </div>
+
+    <div class="callout callout-blue">
+      This is exactly how ChatGPT and every other autoregressive language model
+      generates text — just at a much larger scale. The same
+      "embed → attend → project → sample → repeat" loop runs billions of
+      parameters deep for real models.
+    </div>
+
+    <p>
+      A fresh <code>keys</code> and <code>vals</code> KV-cache is created for
+      each sample so that the 20 generated names are independent of each other.
+    </p>
+  </div>
+</div>
+
+
+<!-- ════════════════════════════════════════════════
+     QUICK REFERENCE
+════════════════════════════════════════════════ -->
+<div class="section-title">Quick Reference</div>
+<p class="section-subtitle">Architecture at a glance</p>
+
+<div class="component-card">
+  <div class="card-body">
+    <pre><code><span class="cm">Input token ID (integer 0–26)
+        │
+        ▼
+wte[tokenId]          <span class="cm">← 16-d token embedding vector</span>
+  + wpe[posId]         <span class="cm">← 16-d positional embedding vector</span>
+        │
+    RMSNorm
+        │
+    ┌───┴──────────────────────────────────────────┐
+    │                                              │
+    │   Transformer Layer (×1)                     │
+    │                                              │
+    │   RMSNorm                                    │
+    │       │                                      │
+    │   Q = linear(x, wq)   16-d                   │
+    │   K = linear(x, wk)   16-d  ← cached         │
+    │   V = linear(x, wv)   16-d  ← cached         │
+    │       │                                      │
+    │   [split into 4 heads × 4-d each]            │
+    │       │                                      │
+    │   scores = Q·Kᵀ / √4                         │
+    │   weights = softmax(scores)                  │
+    │   attn_out = weights · V                     │
+    │       │                                      │
+    │   [concatenate 4 heads]                      │
+    │       │                                      │
+    │   x = linear(attn_out, wo)  + residual       │
+    │       │                                      │
+    │   RMSNorm                                    │
+    │   x = linear(x, mlp_fc1)   16→64             │
+    │   x = ReLU(x)                                │
+    │   x = linear(x, mlp_fc2)   64→16             │
+    │   x = x + residual                           │
+    │                                              │
+    └───────────────────────────────────────────┘
+        │
+    linear(x, lm_head)     <span class="cm">← 16 → 27 logits</span>
+        │
+    softmax(logits)        <span class="cm">← 27 probabilities</span>
+        │
+   sample / compute loss</span></code></pre>
+  </div>
+</div>
+
+</div><!-- /container -->
+
+<footer>
+  Based on <a href="https://gist.github.com/karpathy/8627fe009c40f57531cb18360106ce95">Andrej Karpathy's microgpt.py</a> —
+  TypeScript port in <code>js-microgpt-ts</code>.
+  Zero runtime dependencies. ~340 lines.
+</footer>
+
+</body>
+</html>
